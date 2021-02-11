@@ -28,7 +28,11 @@ LSTAR MSR register points to (either entry_SYSCALL_64 or entry_SYSCALL_64_trampo
 
 When the pattern matching fails (e.g. when different compiler versions are used that 
 implements different optimizations) we will simply override the syscall table instead,
-which is less stealthy and allows rootkit detection via syscall table integrity checks 
+which is less stealthy and allows rootkit detection via syscall table integrity checks. 
+
+* **Privilege Escalation via Backdoor:**
+
+Execute an arbitrary program as root.
 
 ## Build dependencies
 
@@ -68,3 +72,9 @@ The rootkit control program supports the following commands:
     Unload the rootkit: 
 
     ``./rkctl unload``
+    
+* ***Backdoor:***
+
+    Run an arbitrary program as root (e.g. root shell via /bin/sh): 
+
+    ``./rkctl backdoor <program>``
