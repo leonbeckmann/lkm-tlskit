@@ -30,6 +30,13 @@ When the pattern matching fails (e.g. when different compiler versions are used 
 implements different optimizations) we will simply override the syscall table instead,
 which is less stealthy and allows rootkit detection via syscall table integrity checks. 
 
+* **File hiding:**
+
+Files that contains the "user.rootkit" extended attribute are hidden from the user space
+by hooking the getdents(64) syscall.
+
+Extended attributes can be set via the *setfattr* tool.
+
 * **Privilege Escalation via Backdoor:**
 
 Execute an arbitrary program as root.

