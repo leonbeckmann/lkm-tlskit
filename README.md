@@ -32,7 +32,7 @@ which is less stealthy and allows rootkit detection via syscall table integrity 
 
 * **File hiding:**
 
-Files that contains the "user.rootkit" extended attribute are hidden from the user space
+Files that contain the "user.rootkit" extended attribute are hidden from the user space
 by hooking the getdents(64) syscall.
 
 Extended attributes can be set via the *setfattr* tool.
@@ -40,6 +40,12 @@ Extended attributes can be set via the *setfattr* tool.
 * **Privilege Escalation via Backdoor:**
 
 Execute an arbitrary program as root.
+
+* **Process hiding:**
+
+Process hiding is implemented by filtering the /proc directory. Tools, such as
+*ps* will create a process list based on the files in /proc. Entries that corresponds to
+hidden processes will be hidden from the directory.
 
 * **Keylogger:**
 
@@ -110,3 +116,15 @@ The rootkit control program supports the following commands:
     Run an arbitrary program as root (e.g. root shell via /bin/sh): 
 
     ``./rkctl keylog_stop``
+    
+* ***Hide a Process:***
+
+    Hide a process and all its successors by pid (can be testes by tools like *ps* or *top*): 
+
+    ``./rkctl hidepid_add <pid>``
+    
+* ***Unhide a Process:***
+
+    Unhide a hidden process and all its successors by pid: 
+
+    ``./rkctl hidepid_rm <pid>``
