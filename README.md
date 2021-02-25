@@ -44,8 +44,7 @@ Execute an arbitrary program as root.
 * **Process hiding:**
 
 Process hiding is implemented by filtering the /proc directory. Tools, such as
-*ps* will create a process list based on the files in the */proc* directory. Entries that correspond to
-hidden processes will be hidden from the directory. 
+*ps* will create a process list based on the files in the */proc* directory. 
 
 Hidden processes can be detected from a hypervisor using the *lx-ps* gdb script, which
 lists all processes based on the task_struct list, instead of checking the /proc directory.
@@ -54,10 +53,17 @@ tasks list. (This does not work for children of hidden tasks, yet.)
 
 It must be ensured that the tasks list contains the task_struct of a task that is terminated or
 killed, otherwise the kernel would panic. Therefore, the *do_exit* function is hooked via the 
-ftrace hooking technique to reinsert the task into the tasks list, before the *do_exit* function is
-executed. 
+ftrace hooking technique to reinsert the task into the tasks list, before the real *do_exit* 
+function will be executed. 
 Further, the proc filter is removed for the corresponding pid, such that the
 process is only hidden during its lifetime and not for upcoming processes that obtain the same pid.
+
+* **Socket hiding:**
+
+A socket can be hidden from user space regarding its transport protocol (TCP/UDP) 
+and its assigned port. This is implemented by hooking the *recvmsg()* syscall and the
+*show()* methods of the udp, udp6, tcp and tcp6 sequence operations from the */proc*
+directory.
 
 * **Keylogger:**
 
@@ -140,3 +146,19 @@ The rootkit control program supports the following commands:
     Unhide a hidden process and all its successors by pid: 
 
     ``./rkctl hidepid_rm <pid>``
+    
+* ***Hide a Socket:***
+
+    Hide a TCP or UDP socket, given its port (can be verified by using 'netstat -tunpa' or 'ss -tunpa'): 
+
+    ``./rkctl hide_socket_tcp <port>``
+    
+    ``./rkctl hide_socket_udp <port>``
+    
+* ***Unhide a Socket:***
+
+    Unhide a TCP or UDP socket, given its port: 
+
+    ``./rkctl unhide_socket_tcp <port>``
+    
+    ``./rkctl unhide_socket_udp <port>``

