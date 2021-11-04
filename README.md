@@ -97,6 +97,12 @@ The rootkit can be controlled via a user-space control program.
 
 The rootkit control program supports the following commands:
 
+* ***Help Menu:***
+
+    Print a help menu:
+
+    ``./rkctl help``
+
 * ***Ping:*** 
 
     Check if the rootkit is currently alive: 
@@ -154,6 +160,16 @@ The rootkit control program supports the following commands:
     Unhide a TCP or UDP socket, given its port: 
 
     ``./rkctl unhide_socket <port>``
+
+* ***Hiding Files:***
+
+    To hide or unhide files or directories, the xattr helper program can be used. Either one or multiple paths, seperated by space,
+    can be passed as arguments:
+
+    ``./xattr hide <path> ...``
+
+    ``./xattr unhide <path> ...``
+
 
 ## Setting up a virtualized environment for testing (Ubuntu guide)
 

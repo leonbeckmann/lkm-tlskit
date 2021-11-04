@@ -1,7 +1,7 @@
 SRC_DIR     := src
 ROOTKIT     := tlskit
 
-all: rkctl tlskit
+all: xattr rkctl tlskit
 
 obj-m += $(ROOTKIT).o
 
@@ -28,5 +28,9 @@ rkctl: $(SRC_DIR)/rkctl.c
 	echo "Compiling tlskit control program ..."
 	gcc -o rkctl $(SRC_DIR)/rkctl.c
 
+xattr: $(SRC_DIR)/xattr.c
+	echo "Compiling xattr helper ..."
+	gcc -o xattr $(SRC_DIR)/xattr.c
+
 clean:
-	rm -rf rkctl
+	rm -rf rkctl xattr
