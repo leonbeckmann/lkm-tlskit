@@ -3,7 +3,7 @@
 A Linux rootkit, based on a Linux Kernel Module.
 
 > This rootkit has been developed on Linux kernel version 4.19.0-12-amd64
-on Debian 10.6
+on Debian Booster 10.6.0
 
 ## Features
 
@@ -51,7 +51,7 @@ lists all processes based on the task_struct list, instead of checking the /proc
 To avoid this kind of detection, the corresponding task_struct is removed from the internal
 tasks list. (This does not work for children of hidden tasks, yet.)
 
-It must be ensured that the tasks list contains the task_struct of a task that is terminated or
+It must be ensured that the task list contains the task_struct of a task that is terminated or
 killed, otherwise the kernel would panic. Therefore, the *do_exit* function is hooked via the 
 ftrace hooking technique to reinsert the task into the tasks list, before the real *do_exit* 
 function will be executed. 
@@ -60,10 +60,8 @@ process is only hidden during its lifetime and not for upcoming processes that o
 
 * **Socket hiding:**
 
-A socket can be hidden from user space regarding its transport protocol (TCP/UDP) 
-and its assigned port. This is implemented by hooking the *recvmsg()* syscall and the
-*show()* methods of the udp, udp6, tcp and tcp6 sequence operations from the */proc*
-directory.
+A TCP or UDP socket can be hidden from user space regarding its assigned port. This is implemented by hooking the *recvmsg()* syscall 
+and the *show()* methods of the udp, udp6, tcp and tcp6 sequence operations from the */proc* directory.
 
 * **Keylogger:**
 
@@ -147,19 +145,15 @@ The rootkit control program supports the following commands:
     
 * ***Hide a Socket:***
 
-    Hide a TCP or UDP socket, given its port (can be verified by using 'netstat -tunpa' or 'ss -tunpa'): 
+    Hide a socket, given its port (can be verified by using 'netstat -tunpa' or 'ss -tunpa'): 
 
-    ``./rkctl hide_socket_tcp <port>``
-    
-    ``./rkctl hide_socket_udp <port>``
+    ``./rkctl hide_socket <port>``
     
 * ***Unhide a Socket:***
 
     Unhide a TCP or UDP socket, given its port: 
 
-    ``./rkctl unhide_socket_tcp <port>``
-    
-    ``./rkctl unhide_socket_udp <port>``
+    ``./rkctl unhide_socket <port>``
 
 ## Setting up a virtualized environment for testing (Ubuntu guide)
 
