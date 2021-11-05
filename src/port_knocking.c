@@ -30,8 +30,6 @@
 
 static int enabled = 0;
 
-#define PORT_DEBUG_ENABLED 1
-
 static struct nf_hook_ops *nfho_v4 = NULL;
 static struct nf_hook_ops *nfho_v6 = NULL;
 static struct nf_hook_ops *nfho_v4_out = NULL;
@@ -173,53 +171,39 @@ static unsigned int check_out_packet(unsigned char ip_version, struct tcphdr *tc
         write_lock(&ports_lock);
         if (NULL == (existent_node = is_hidden(ntohs(tcph->source)))) {
             // not hidden
-            write_unlock(&ports_lock);
-            return NF_ACCEPT;
-        }
-
-        if (PORT_DEBUG_ENABLED) {
-            printk("[ ] Received a TCP RST or TCP FIN over IPv%u packet for a hidden port %u\n", ip_version, ntohs(tcph->source));
+            goto label_accept;
         }
 
         // hidden, remove if authorized
         if (ip_version == 4) {
             if (NULL == (c = check_ipv4_connection(ntohs(tcph->dest), daddr_v4, &existent_node->ipv4_connections))) {
                 // non authorized
-                if (PORT_DEBUG_ENABLED) {
-                    printk("[-] Client was not authorized, drop the packet\n");
-                }
-                write_unlock(&ports_lock);
-                return NF_DROP;
+                goto label_drop;
             } else {
                 // remove client
                 list_del(&c->list);
-                if (PORT_DEBUG_ENABLED) {
-                    printk("[+] The authorized client was removed\n");
-                }
-                write_unlock(&ports_lock);
-                return NF_ACCEPT;
+                goto label_accept;
             }
         } else {
             if (NULL == (c6 = check_ipv6_connection(ntohs(tcph->dest), daddr_v6, &existent_node->ipv6_connections))) {
                 // non authorized
-                if (PORT_DEBUG_ENABLED) {
-                    printk("[-] Client was not authorized, drop the packet\n");
-                }
-                write_unlock(&ports_lock);
-                return NF_DROP;
+                goto label_drop;
             } else {
                 // remove client
                 list_del(&c6->list);
-                if (PORT_DEBUG_ENABLED) {
-                    printk("[+] The authorized client was removed\n");
-                }
-                write_unlock(&ports_lock);
-                return NF_ACCEPT;
+                goto label_accept;
             }
         }
     }
+    // not a TCP SYN / TCP ACK
+
+label_accept:
     write_unlock(&ports_lock);
-    return NF_ACCEPT; // not a TCP SYN / TCP ACK
+    return NF_ACCEPT;
+
+label_drop:
+    write_unlock(&ports_lock);
+    return NF_DROP;
 }
 
 static unsigned int check_packet(unsigned char ip_version, struct tcphdr *tcph, unsigned int saddr_v4, struct in6_addr *saddr_v6) {
@@ -228,7 +212,6 @@ static unsigned int check_packet(unsigned char ip_version, struct tcphdr *tcph, 
     struct port_knocking_node *existent_node;
     struct ipv4_connection *c, *new_c;
     struct ipv6_connection *c6, *new_c6;
-    int ret = -1;
 
     /*
      * We have received a TCP packet, we have to do the following steps:
@@ -243,32 +226,18 @@ static unsigned int check_packet(unsigned char ip_version, struct tcphdr *tcph, 
     write_lock(&ports_lock);
     if (NULL == (existent_node = is_hidden(ntohs(tcph->dest)))) {
         // not hidden
-        write_unlock(&ports_lock);
-        return NF_ACCEPT;
-    }
-
-    if (PORT_DEBUG_ENABLED) {
-        printk("[ ] Received a TCP over IPv%u packet for a hidden port\n", ip_version);
+        goto label_accept;
     }
 
     if (ip_version == 4) {
         c = check_ipv4_connection(ntohs(tcph->source), saddr_v4, &existent_node->ipv4_connections);
-        ret = (c != NULL);
     } else {
         c6 = check_ipv6_connection(ntohs(tcph->source), saddr_v6, &existent_node->ipv6_connections);
-        ret = (c6 != NULL);
     }
 
-    if (ret) {
+    if ((ip_version == 4 && c != NULL) || (ip_version == 6 && c6 != NULL)) {
         // already authorized
-        if (PORT_DEBUG_ENABLED) {
-            printk("[+] TCP packet is from an authorized client\n");
-        }
-
         if (tcph->rst || tcph->fin) {
-            if (PORT_DEBUG_ENABLED) {
-                printk("[ ] TCP packet is a RST or FIN. Close open connection\n");
-            }
             if (ip_version == 4) {
                 list_del(&c->list);
                 kfree(c);
@@ -277,8 +246,7 @@ static unsigned int check_packet(unsigned char ip_version, struct tcphdr *tcph, 
                 kfree(c6);
             }
         }
-        write_unlock(&ports_lock);
-        return NF_ACCEPT;
+        goto label_accept;
     }
 
     if (tcph->syn && !tcph->ack) {
@@ -289,9 +257,6 @@ static unsigned int check_packet(unsigned char ip_version, struct tcphdr *tcph, 
         size_t len = 0;
 
         // we got a TCP SYN
-        if (PORT_DEBUG_ENABLED) {
-            printk("[ ] TCP packet is TCP SYN from unauthorized client\n");
-        }
         seqnr = ntohl(tcph->seq);
 
         // calculate second round hash
@@ -312,21 +277,13 @@ static unsigned int check_packet(unsigned char ip_version, struct tcphdr *tcph, 
         }
 
         if (0 != sha256(second_round_hash_data, len, second_round_hash)) {
-            if (PORT_DEBUG_ENABLED) {
-                printk("[-] Cannot create sha256 hash for second round. Drop packet\n");
-            }
-            write_unlock(&ports_lock);
-            return NF_DROP;
+            goto label_drop;
         }
 
         memcpy(&hash, second_round_hash, 4); // truncate first 4 bytes
 
         if (seqnr == ntohl(hash)) {
             // authorization successful, add into open connections
-            if (PORT_DEBUG_ENABLED) {
-                printk("[+] Authorization successful. Open a new connection for the client\n");
-            }
-
             if (ip_version == 4) {
                 new_c = kmalloc(sizeof(struct ipv4_connection), GFP_KERNEL);
                 if (new_c) {
@@ -342,27 +299,23 @@ static unsigned int check_packet(unsigned char ip_version, struct tcphdr *tcph, 
                     list_add_tail(&new_c6->list, &existent_node->ipv6_connections);
                 }
             }
-            if (PORT_DEBUG_ENABLED && ((ip_version == 4 && new_c == NULL) || (ip_version == 6 && new_c6 == NULL))) {
-                printk("[-] Cannot insert new connection\n");
-            }
-            write_unlock(&ports_lock);
-            return NF_ACCEPT;
+            goto label_accept;
         } else {
             // authorization failed
-            if (PORT_DEBUG_ENABLED) {
-                printk("[+] Authorization failed. Drop the packet\n");
-            }
-            write_unlock(&ports_lock);
-            return NF_DROP;
+            goto label_drop;
         }
     } else {
         // other TCP packet
-        if (PORT_DEBUG_ENABLED) {
-            printk("[+] Received unexpected TCP packet from unauthorized client. Drop the packet\n");
-        }
-        write_unlock(&ports_lock);
-        return NF_DROP;
+        goto label_drop;
     }
+
+label_accept:
+    write_unlock(&ports_lock);
+    return NF_ACCEPT;
+
+label_drop:
+    write_unlock(&ports_lock);
+    return NF_DROP;
 }
 
 static unsigned int ipv4_hook_out(void *priv, struct sk_buff *skb, const struct nf_hook_state *state)
@@ -457,7 +410,6 @@ int port_knocking_add(struct hidden_port data) {
             if (NULL == (new_entry = create_port_node(data.port))) {
                 goto locked_err;
             }
-            printk("1\n");
 
             // create hash
             if (0 > sha256(data.secret, strlen(data.secret), new_entry->hash)) {
